@@ -1,0 +1,35 @@
+### 1. Đăng ký tài khoản Khách hàng mới (Customer - Mặc định)
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Văn A",
+  "email": "nguyenvana@gmail.com",
+  "password": "password123",
+  "phone": "0987654321"
+}
+
+### 2. Đăng nhập tài khoản Khách hàng (Đăng nhập để nhận Token của khách hàng)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nguyenvana@gmail.com",
+  "password": "password123"
+}
+
+### 3. Đăng nhập tài khoản Quản trị viên (Admin - Được khởi tạo tự động)
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@tmdt.com",
+  "password": "adminpassword123"
+}
+
+### 4. Admin duyệt Khách hàng lên thành Người bán (SELLER)
+# LƯU Ý: Hãy thay thế <MÃ_TOKEN_ADMIN_Ở_ĐÂY> bằng mã accessToken nhận được từ phản hồi đăng nhập của Admin ở Bước 3.
+# Thay đổi số ID "2" thành ID thực tế của Khách hàng trong Database của bạn nếu cần.
+PUT http://localhost:8080/api/admin/users/2/approve-seller
+Authorization: Bearer <MÃ_TOKEN_ADMIN_Ở_ĐÂY>
+Content-Type: application/json
