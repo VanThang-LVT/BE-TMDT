@@ -73,6 +73,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(jwt)
                 .email(userDetails.getEmail())
                 .fullName(userDetails.getFullName())
+                .phone(userDetails.getPhone())
                 .roles(roles)
                 .build();
     }
