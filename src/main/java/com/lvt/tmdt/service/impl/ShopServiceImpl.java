@@ -12,6 +12,7 @@ import com.lvt.tmdt.repository.ShopRepository;
 import com.lvt.tmdt.repository.UserRepository;
 import com.lvt.tmdt.service.intf.ShopService;
 import com.lvt.tmdt.service.intf.NotificationService;
+import com.lvt.tmdt.mapper.ShopMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,9 @@ public class ShopServiceImpl implements ShopService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private ShopMapper shopMapper;
 
     @Override
     @Transactional
@@ -66,7 +70,7 @@ public class ShopServiceImpl implements ShopService {
                 "Người dùng " + user.getFullName() + " vừa gửi yêu cầu đăng ký gian hàng: " + request.getShopName()
         );
         
-        return mapToResponse(saved);
+        return shopMapper.mapToResponse(saved);
     }
 
     @Override
@@ -77,14 +81,14 @@ public class ShopServiceImpl implements ShopService {
         } else {
             list = shopRepository.findAll();
         }
-        return list.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return list.stream().map(shopMapper::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
     public ShopResponse getShopById(Integer id) {
         Shop shop = shopRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy cửa hàng"));
-        return mapToResponse(shop);
+        return shopMapper.mapToResponse(shop);
     }
 
     @Override
@@ -95,7 +99,7 @@ public class ShopServiceImpl implements ShopService {
         Shop shop = shopRepository.findByUser(user)
                 .orElseThrow(() -> new RuntimeException("Bạn chưa đăng ký gian hàng nào."));
                 
-        return mapToResponse(shop);
+        return shopMapper.mapToResponse(shop);
     }
 
     @Override
@@ -136,23 +140,6 @@ public class ShopServiceImpl implements ShopService {
         }
 
         Shop saved = shopRepository.save(shop);
-        return mapToResponse(saved);
-    }
-
-    private ShopResponse mapToResponse(Shop entity) {
-        return ShopResponse.builder()
-                .shopId(entity.getShopId())
-                .shopName(entity.getShopName())
-                .phone(entity.getPhone())
-                .address(entity.getAddress())
-                .description(entity.getDescription())
-                .logoUrl(entity.getLogoUrl())
-                .status(entity.getStatus())
-                .rejectReason(entity.getRejectReason())
-                .createdAt(entity.getCreatedAt())
-                .userId(entity.getUser().getUserId())
-                .fullName(entity.getUser().getFullName())
-                .email(entity.getUser().getEmail())
-                .build();
+        return shopMapper.mapToResponse(saved);
     }
 }

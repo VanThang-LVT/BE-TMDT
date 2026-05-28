@@ -8,6 +8,7 @@ import com.lvt.tmdt.repository.NotificationRepository;
 import com.lvt.tmdt.repository.RoleRepository;
 import com.lvt.tmdt.repository.UserRepository;
 import com.lvt.tmdt.service.intf.NotificationService;
+import com.lvt.tmdt.mapper.NotificationMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private NotificationMapper notificationMapper;
 
     @Override
     @Transactional
@@ -57,7 +61,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
 
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(user);
-        return notifications.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return notifications.stream().map(notificationMapper::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -94,15 +98,5 @@ public class NotificationServiceImpl implements NotificationService {
             }
         }
         notificationRepository.saveAll(notifications);
-    }
-
-    private NotificationResponse mapToResponse(Notification entity) {
-        return NotificationResponse.builder()
-                .notificationId(entity.getNotificationId())
-                .title(entity.getTitle())
-                .content(entity.getContent())
-                .isRead(entity.getIsRead())
-                .createdAt(entity.getCreatedAt())
-                .build();
     }
 }
