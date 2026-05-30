@@ -44,27 +44,35 @@ public class ShopServiceImpl implements ShopService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
 
-        if (shopRepository.existsByUser(user)) {
-            throw new RuntimeException("Bạn đã gửi yêu cầu đăng ký gian hàng trước đó.");
-        }
+        Shop shop = shopRepository.findByUser(user).orElse(null);
 
-        boolean isSeller = user.getRoles().stream().anyMatch(role -> role.getRoleName().equals("SELLER"));
-        if (isSeller) {
-            throw new RuntimeException("Bạn đã là Người Bán.");
-        }
+        if (shop != null) {
+            if (shop.getStatus() == ShopStatus.PENDING) {
+                throw new RuntimeException("Bạn đã gửi yêu cầu đăng ký gian hàng trước đó, đang chờ duyệt.");
+            }
+            if (shop.getStatus() == ShopStatus.ACTIVE) {
+                throw new RuntimeException("Gian hàng của bạn đã được duyệt và đang hoạt động.");
+            }
 
-        Shop shop = Shop.builder()
-                .user(user)
-                .shopName(request.getShopName())
-                .phone(request.getPhone())
-                .address(request.getAddress())
-                .description(request.getDescription())
-                .status(ShopStatus.PENDING)
-                .build();
+            shop.setShopName(request.getShopName());
+            shop.setPhone(request.getPhone());
+            shop.setAddress(request.getAddress());
+            shop.setDescription(request.getDescription());
+            shop.setStatus(ShopStatus.PENDING);
+            shop.setRejectReason(null);
+        } else {
+            shop = Shop.builder()
+                    .user(user)
+                    .shopName(request.getShopName())
+                    .phone(request.getPhone())
+                    .address(request.getAddress())
+                    .description(request.getDescription())
+                    .status(ShopStatus.PENDING)
+                    .build();
+        }
 
         Shop saved = shopRepository.save(shop);
-        
-        // Gửi thông báo cho Admin
+
         notificationService.sendToAllAdmins(
                 "Yêu cầu mở gian hàng mới",
                 "Người dùng " + user.getFullName() + " vừa gửi yêu cầu đăng ký gian hàng: " + request.getShopName()
@@ -101,7 +109,6 @@ public class ShopServiceImpl implements ShopService {
                 
         return shopMapper.mapToResponse(shop);
     }
-
     @Override
     @Transactional
     public ShopResponse approveOrRejectShop(Integer id, ShopApprovalRequest request) {
