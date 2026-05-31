@@ -11,6 +11,7 @@ import com.lvt.tmdt.repository.UserRepository;
 import com.lvt.tmdt.sercurity.CustomUserDetails;
 import com.lvt.tmdt.sercurity.JwtTokenProvider;
 import com.lvt.tmdt.service.intf.AuthService;
+import com.lvt.tmdt.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,6 +45,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -69,13 +73,7 @@ public class AuthServiceImpl implements AuthService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        return AuthResponse.builder()
-                .accessToken(jwt)
-                .email(userDetails.getEmail())
-                .fullName(userDetails.getFullName())
-                .phone(userDetails.getPhone())
-                .roles(roles)
-                .build();
+        return userMapper.toAuthResponse(jwt, userDetails, roles);
     }
 
     @Override
@@ -91,14 +89,10 @@ public class AuthServiceImpl implements AuthService {
                         "Lỗi: Không tìm thấy vai trò mặc định CUSTOMER trong cơ sở dữ liệu."));
         roles.add(customerRole);
 
-        User user = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
-                .status(UserStatus.ACTIVE)
-                .roles(roles)
-                .build();
+        User user = userMapper.toEntity(request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRoles(roles);
 
         userRepository.save(user);
     }

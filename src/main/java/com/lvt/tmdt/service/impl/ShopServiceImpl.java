@@ -54,21 +54,9 @@ public class ShopServiceImpl implements ShopService {
                 throw new RuntimeException("Gian hàng của bạn đã được duyệt và đang hoạt động.");
             }
 
-            shop.setShopName(request.getShopName());
-            shop.setPhone(request.getPhone());
-            shop.setAddress(request.getAddress());
-            shop.setDescription(request.getDescription());
-            shop.setStatus(ShopStatus.PENDING);
-            shop.setRejectReason(null);
+            shopMapper.updateEntityFromRequest(shop, request);
         } else {
-            shop = Shop.builder()
-                    .user(user)
-                    .shopName(request.getShopName())
-                    .phone(request.getPhone())
-                    .address(request.getAddress())
-                    .description(request.getDescription())
-                    .status(ShopStatus.PENDING)
-                    .build();
+            shop = shopMapper.mapToEntity(request, user);
         }
 
         Shop saved = shopRepository.save(shop);
