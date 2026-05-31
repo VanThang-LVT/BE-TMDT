@@ -1,0 +1,130 @@
+package com.lvt.tmdt.mapper;
+
+import com.lvt.tmdt.dto.request.ProductRequest;
+import com.lvt.tmdt.dto.response.ProductResponse;
+import com.lvt.tmdt.entity.Category;
+import com.lvt.tmdt.entity.Product;
+import com.lvt.tmdt.entity.ProductAttributeValue;
+import com.lvt.tmdt.entity.Shop;
+import com.lvt.tmdt.enums.ProductStatus;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import com.lvt.tmdt.entity.CategoryAttribute;
+import com.lvt.tmdt.entity.ProductImage;
+
+@Component
+public class ProductMapper {
+    public ProductResponse mapToResponse(Product product) {
+        if (product == null)
+            return null;
+        
+        ProductResponse res = new ProductResponse();
+        res.setProductId(product.getProductId());
+        
+        if (product.getShop() != null) {
+            res.setShopId(product.getShop().getShopId());
+        }
+        
+        if (product.getCategory() != null) {
+            res.setCategoryId(product.getCategory().getCategoryId());
+            res.setCategoryName(product.getCategory().getCategoryName());
+        }
+        
+        res.setProductName(product.getProductName());
+        res.setDescription(product.getDescription());
+        res.setPrice(product.getPrice());
+        res.setStockQuantity(product.getStockQuantity());
+        res.setBrand(product.getBrand());
+        res.setKeywords(product.getKeywords());
+        res.setSpecifications(product.getSpecifications());
+        
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            java.util.List<Integer> imgIds = new ArrayList<>();
+            for (ProductImage img : product.getImages()) {
+                imgIds.add(img.getImageId());
+                if (Boolean.TRUE.equals(img.getIsMain())) {
+                    res.setMainImageId(img.getImageId());
+                }
+            }
+            res.setImageIds(imgIds);
+        }
+        
+        if (product.getAttributeValues() != null && !product.getAttributeValues().isEmpty()) {
+            Map<String, String> attrMap = new HashMap<>();
+            for (ProductAttributeValue val : product.getAttributeValues()) {
+                if (val.getCategoryAttribute() != null) {
+                    attrMap.put(val.getCategoryAttribute().getAttrName(), val.getValueString());
+                }
+            }
+            res.setAttributes(attrMap);
+        }
+        
+        res.setStatus(product.getStatus());
+        res.setCreatedAt(product.getCreatedAt());
+        return res;
+    }
+    public Product mapToEntity(ProductRequest request, Shop shop, Category category) {
+        if (request == null)
+            return null;
+        
+        return Product.builder()
+                .shop(shop)
+                .category(category)
+                .productName(request.getProductName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .stockQuantity(request.getStockQuantity())
+                .brand(request.getBrand())
+                .keywords(request.getKeywords())
+                .specifications(request.getSpecifications())
+                .status(ProductStatus.PENDING) // Always PENDING when newly created
+                .images(new ArrayList<>())
+                .build();
+    }
+    
+    public void updateEntityFromRequest(ProductRequest request, Product product, Category category) {
+        if (request == null || product == null)
+            return;
+        
+        product.setCategory(category);
+        product.setProductName(request.getProductName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setStockQuantity(request.getStockQuantity());
+        product.setBrand(request.getBrand());
+        product.setKeywords(request.getKeywords());
+        product.setSpecifications(request.getSpecifications());
+    }
+    
+    public ProductImage mapToProductImage(MultipartFile file, Product product, boolean isMain) {
+        if (file == null || file.isEmpty())
+            return null;
+        
+        try {
+            ProductImage productImage = new ProductImage();
+            productImage.setProduct(product);
+            productImage.setImageData(file.getBytes());
+            productImage.setContentType(file.getContentType());
+            productImage.setIsMain(isMain);
+            return productImage;
+        } catch (IOException e) {
+            throw new RuntimeException("Lỗi xử lý file ảnh", e);
+        }
+    }
+    
+    public ProductAttributeValue mapToProductAttributeValue(CategoryAttribute categoryAttribute, String value, Product product) {
+        if (categoryAttribute == null || value == null) return null;
+        
+        ProductAttributeValue val = new ProductAttributeValue();
+        val.setProduct(product);
+        val.setCategoryAttribute(categoryAttribute);
+        val.setValueString(value);
+        return val;
+    }
+}
