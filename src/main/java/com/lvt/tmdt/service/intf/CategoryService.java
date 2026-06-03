@@ -7,8 +7,8 @@ import com.lvt.tmdt.dto.response.CategoryAttributeResponse;
 import java.util.List;
 
 public interface CategoryService {
-    List<CategoryResponse> getAllActiveCategories();
-    List<CategoryResponse> getAllCategories();
+    List<CategoryResponse> getAllActiveCategories(String keyword);
+    List<CategoryResponse> getAllCategories(String keyword);
     CategoryResponse createCategory(CategoryRequest request);
     CategoryResponse updateCategory(Short id, CategoryRequest request);
     List<CategoryAttributeResponse> getAttributesByCategory(Short categoryId);

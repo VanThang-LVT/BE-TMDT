@@ -21,14 +21,16 @@ public class CategoryController {
     private CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllActiveCategories() {
-        return ResponseEntity.ok(categoryService.getAllActiveCategories());
+    public ResponseEntity<List<CategoryResponse>> getAllActiveCategories(
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(categoryService.getAllActiveCategories(keyword));
     }
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<CategoryResponse>> getAllCategoriesForAdmin() {
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    public ResponseEntity<List<CategoryResponse>> getAllCategoriesForAdmin(
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(categoryService.getAllCategories(keyword));
     }
 
     @PostMapping("/admin")

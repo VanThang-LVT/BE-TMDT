@@ -34,8 +34,13 @@ public class CategoryServiceImpl implements CategoryService {
     private CategoryAttributeMapper categoryAttributeMapper;
 
     @Override
-    public List<CategoryResponse> getAllActiveCategories() {
-        List<Category> categories = categoryRepository.findAll();
+    public List<CategoryResponse> getAllActiveCategories(String keyword) {
+        List<Category> categories;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            categories = categoryRepository.searchCategories(keyword.trim());
+        } else {
+            categories = categoryRepository.findAll();
+        }
         return categories.stream()
                 .filter(c -> c.getStatus() == CategoryStatus.ACTIVE)
                 .map(categoryMapper::mapToResponse)
@@ -43,8 +48,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryResponse> getAllCategories() {
-        return categoryRepository.findAll().stream()
+    public List<CategoryResponse> getAllCategories(String keyword) {
+        List<Category> categories;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            categories = categoryRepository.searchCategories(keyword.trim());
+        } else {
+            categories = categoryRepository.findAll();
+        }
+        return categories.stream()
                 .map(categoryMapper::mapToResponse)
                 .collect(Collectors.toList());
     }
