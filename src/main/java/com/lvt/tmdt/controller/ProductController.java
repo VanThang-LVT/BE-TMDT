@@ -34,8 +34,9 @@ public class ProductController {
     @GetMapping
     @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<List<ProductResponse>> getMyProducts(
+            @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        List<ProductResponse> responses = productService.getProductsBySeller(userDetails.getUserId());
+        List<ProductResponse> responses = productService.getProductsBySeller(userDetails.getUserId(), keyword);
         return ResponseEntity.ok(responses);
     }
 

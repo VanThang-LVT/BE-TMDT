@@ -29,6 +29,7 @@ public class ProductMapper {
         
         if (product.getShop() != null) {
             res.setShopId(product.getShop().getShopId());
+            res.setShopName(product.getShop().getShopName());
         }
         
         if (product.getCategory() != null) {
@@ -63,6 +64,24 @@ public class ProductMapper {
                 }
             }
             res.setAttributes(attrMap);
+        }
+        
+        if (product.getApprovalHistories() != null && !product.getApprovalHistories().isEmpty()) {
+            java.util.List<com.lvt.tmdt.dto.response.ApprovalHistoryResponse> historyResponses = new ArrayList<>();
+            for (com.lvt.tmdt.entity.ProductApprovalHistory history : product.getApprovalHistories()) {
+                com.lvt.tmdt.dto.response.ApprovalHistoryResponse histRes = new com.lvt.tmdt.dto.response.ApprovalHistoryResponse();
+                histRes.setApprovalId(history.getApprovalId());
+                if (history.getAdmin() != null) {
+                    histRes.setAdminName(history.getAdmin().getFullName());
+                }
+                histRes.setStatus(history.getStatus());
+                histRes.setNote(history.getNote());
+                histRes.setCreatedAt(history.getCreatedAt());
+                historyResponses.add(histRes);
+            }
+            // Sort by createdAt descending
+            historyResponses.sort((h1, h2) -> h2.getCreatedAt().compareTo(h1.getCreatedAt()));
+            res.setApprovalHistories(historyResponses);
         }
         
         res.setStatus(product.getStatus());

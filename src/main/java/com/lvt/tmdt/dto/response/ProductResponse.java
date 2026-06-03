@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class ProductResponse {
     private Integer productId;
     private Integer shopId;
+    private String shopName;
     private Short categoryId;
     private String categoryName;
     private String productName;
@@ -22,5 +23,6 @@ public class ProductResponse {
     private java.util.List<Integer> imageIds;
     private java.util.Map<String, String> attributes;
     private ProductStatus status;
+    private java.util.List<ApprovalHistoryResponse> approvalHistories;
     private LocalDateTime createdAt;
 }
