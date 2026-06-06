@@ -105,7 +105,21 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<CategoryAttributeResponse> getAttributesByCategory(Short categoryId) {
-        return categoryAttributeRepository.findByCategory_CategoryId(categoryId).stream()
+        java.util.Map<String, CategoryAttribute> uniqueAttributes = new java.util.LinkedHashMap<>();
+        Short currentId = categoryId;
+        while (currentId != null) {
+            List<CategoryAttribute> attrs = categoryAttributeRepository.findByCategory_CategoryId(currentId);
+            for (CategoryAttribute attr : attrs) {
+                uniqueAttributes.putIfAbsent(attr.getAttrName().toLowerCase(), attr);
+            }
+            Category currentCategory = categoryRepository.findById(currentId).orElse(null);
+            if (currentCategory != null) {
+                currentId = currentCategory.getParentId();
+            } else {
+                currentId = null;
+            }
+        }
+        return uniqueAttributes.values().stream()
                 .map(categoryAttributeMapper::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -114,7 +128,6 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryAttributeResponse addCategoryAttribute(Short categoryId, CategoryAttributeRequest request) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
-                
         CategoryAttribute attr = categoryAttributeMapper.mapToEntity(request, category);
         attr = categoryAttributeRepository.save(attr);
         return categoryAttributeMapper.mapToResponse(attr);
@@ -132,10 +145,8 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryAttributeResponse updateCategoryAttribute(Integer attrId, CategoryAttributeRequest request) {
         CategoryAttribute attr = categoryAttributeRepository.findById(attrId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thuộc tính"));
-        
         attr.setAttrName(request.getAttrName());
         attr.setIsRequired(request.getIsRequired());
-        
         attr = categoryAttributeRepository.save(attr);
         return categoryAttributeMapper.mapToResponse(attr);
     }

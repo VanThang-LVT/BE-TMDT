@@ -70,6 +70,9 @@ public class Product {
     private List<ProductAttributeValue> attributeValues = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductVariant> variants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductApprovalHistory> approvalHistories = new ArrayList<>();
 
     @CreationTimestamp

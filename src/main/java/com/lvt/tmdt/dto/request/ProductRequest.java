@@ -14,4 +14,7 @@ public class ProductRequest {
     private String keywords;
     private String specifications;
     private java.util.Map<Integer, String> attributes;
+    private java.util.List<ProductVariantRequest> variants;
+    private java.util.List<Integer> existingImageIdsToKeep;
+    private Integer mainImageId;
 }

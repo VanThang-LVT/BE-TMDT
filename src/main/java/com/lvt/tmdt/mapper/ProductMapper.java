@@ -17,6 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import com.lvt.tmdt.entity.CategoryAttribute;
 import com.lvt.tmdt.entity.ProductImage;
+import com.lvt.tmdt.entity.ProductVariant;
+import com.lvt.tmdt.entity.VariantAttribute;
+import com.lvt.tmdt.dto.response.ProductVariantResponse;
 
 @Component
 public class ProductMapper {
@@ -46,11 +49,24 @@ public class ProductMapper {
         res.setSpecifications(product.getSpecifications());
         
         if (product.getImages() != null && !product.getImages().isEmpty()) {
+            java.util.Set<Integer> variantImageIds = new java.util.HashSet<>();
+            if (product.getVariants() != null) {
+                for (ProductVariant v : product.getVariants()) {
+                    if (v.getImageUrl() != null && v.getImageUrl().startsWith("/api/public/images/")) {
+                        try {
+                            variantImageIds.add(Integer.parseInt(v.getImageUrl().substring("/api/public/images/".length())));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
             java.util.List<Integer> imgIds = new ArrayList<>();
             for (ProductImage img : product.getImages()) {
-                imgIds.add(img.getImageId());
-                if (Boolean.TRUE.equals(img.getIsMain())) {
-                    res.setMainImageId(img.getImageId());
+                if (!variantImageIds.contains(img.getImageId())) {
+                    imgIds.add(img.getImageId());
+                    if (Boolean.TRUE.equals(img.getIsMain())) {
+                        res.setMainImageId(img.getImageId());
+                    }
                 }
             }
             res.setImageIds(imgIds);
@@ -84,6 +100,14 @@ public class ProductMapper {
             res.setApprovalHistories(historyResponses);
         }
         
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            java.util.List<ProductVariantResponse> variantResponses = new ArrayList<>();
+            for (ProductVariant variant : product.getVariants()) {
+                variantResponses.add(mapToVariantResponse(variant));
+            }
+            res.setVariants(variantResponses);
+        }
+        
         res.setStatus(product.getStatus());
         res.setCreatedAt(product.getCreatedAt());
         return res;
@@ -104,6 +128,8 @@ public class ProductMapper {
                 .specifications(request.getSpecifications())
                 .status(ProductStatus.PENDING) // Always PENDING when newly created
                 .images(new ArrayList<>())
+                .variants(new ArrayList<>())
+                .attributeValues(new ArrayList<>())
                 .build();
     }
     
@@ -145,5 +171,26 @@ public class ProductMapper {
         val.setCategoryAttribute(categoryAttribute);
         val.setValueString(value);
         return val;
+    }
+
+    public ProductVariantResponse mapToVariantResponse(ProductVariant variant) {
+        if (variant == null) return null;
+        ProductVariantResponse res = new ProductVariantResponse();
+        res.setVariantId(variant.getVariantId());
+        res.setSku(variant.getSku());
+        res.setPrice(variant.getPrice());
+        res.setStockQuantity(variant.getStockQuantity());
+        res.setImageUrl(variant.getImageUrl());
+        
+        if (variant.getVariantAttributes() != null && !variant.getVariantAttributes().isEmpty()) {
+            Map<String, String> attrMap = new HashMap<>();
+            for (VariantAttribute vAttr : variant.getVariantAttributes()) {
+                if (vAttr.getCategoryAttribute() != null) {
+                    attrMap.put(vAttr.getCategoryAttribute().getAttrName(), vAttr.getValueString());
+                }
+            }
+            res.setAttributes(attrMap);
+        }
+        return res;
     }
 }

@@ -4,6 +4,8 @@ import com.lvt.tmdt.enums.ProductStatus;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @Data
 public class ProductResponse {
@@ -20,9 +22,10 @@ public class ProductResponse {
     private String keywords;
     private String specifications;
     private Integer mainImageId;
-    private java.util.List<Integer> imageIds;
-    private java.util.Map<String, String> attributes;
+    private List<Integer> imageIds;
+    private Map<String, String> attributes;
     private ProductStatus status;
-    private java.util.List<ApprovalHistoryResponse> approvalHistories;
+    private List<ApprovalHistoryResponse> approvalHistories;
+    private List<ProductVariantResponse> variants;
     private LocalDateTime createdAt;
 }

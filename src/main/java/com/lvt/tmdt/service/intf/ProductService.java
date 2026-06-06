@@ -14,4 +14,6 @@ public interface ProductService {
     List<ProductResponse> getAllProductsForAdmin(String keyword);
     ProductResponse approveProduct(Integer productId);
     ProductResponse rejectProduct(Integer productId, String reason);
+    List<ProductResponse> getAllActiveProducts(String keyword, Short categoryId);
+    ProductResponse getProductById(Integer productId);
 }

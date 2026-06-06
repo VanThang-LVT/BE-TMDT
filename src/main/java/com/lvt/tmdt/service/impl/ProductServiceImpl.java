@@ -3,10 +3,14 @@ package com.lvt.tmdt.service.impl;
 import com.lvt.tmdt.dto.request.ProductRequest;
 import com.lvt.tmdt.dto.response.ProductResponse;
 import com.lvt.tmdt.entity.Category;
+import com.lvt.tmdt.entity.CategoryAttribute;
 import com.lvt.tmdt.entity.Product;
 import com.lvt.tmdt.entity.ProductImage;
 import com.lvt.tmdt.entity.ProductAttributeValue;
 import com.lvt.tmdt.entity.ProductApprovalHistory;
+import com.lvt.tmdt.entity.ProductVariant;
+import com.lvt.tmdt.entity.VariantAttribute;
+import com.lvt.tmdt.dto.request.ProductVariantRequest;
 import com.lvt.tmdt.entity.Shop;
 import com.lvt.tmdt.entity.User;
 import com.lvt.tmdt.enums.ApprovalStatus;
@@ -18,6 +22,7 @@ import com.lvt.tmdt.repository.ShopRepository;
 import com.lvt.tmdt.repository.UserRepository;
 import com.lvt.tmdt.repository.ProductAttributeValueRepository;
 import com.lvt.tmdt.repository.CategoryAttributeRepository;
+import com.lvt.tmdt.repository.ProductImageRepository;
 import com.lvt.tmdt.service.intf.ProductService;
 import com.lvt.tmdt.service.intf.NotificationService;
 import com.lvt.tmdt.mapper.ProductMapper;
@@ -34,7 +39,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Transactional
+@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     @Autowired
@@ -57,6 +67,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private CategoryAttributeRepository categoryAttributeRepository;
+
+    @Autowired
+    private ProductImageRepository productImageRepository;
 
     @Autowired
     private ProductMapper productMapper;
@@ -92,16 +105,77 @@ public class ProductServiceImpl implements ProductService {
 
         Product saved = productRepository.save(product);
 
+        final Product finalSaved = saved;
         if (request.getAttributes() != null && !request.getAttributes().isEmpty()) {
             for (Map.Entry<Integer, String> entry : request.getAttributes().entrySet()) {
                 categoryAttributeRepository.findById(entry.getKey()).ifPresent(catAttr -> {
                     ProductAttributeValue val = productMapper.mapToProductAttributeValue(catAttr, entry.getValue(),
-                            saved);
+                            finalSaved);
                     if (val != null) {
                         productAttributeValueRepository.save(val);
                     }
                 });
             }
+        }
+
+        if (request.getVariants() != null && !request.getVariants().isEmpty()) {
+            for (ProductVariantRequest vReq : request.getVariants()) {
+                ProductVariant variant = new ProductVariant();
+                variant.setProduct(saved);
+                variant.setSku(vReq.getSku());
+                variant.setPrice(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice());
+                variant.setStockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : request.getStockQuantity());
+                
+                String imageUrl = vReq.getImageUrl();
+                if (imageUrl != null && imageUrl.startsWith("data:image")) {
+                    try {
+                        String[] parts = imageUrl.split(",");
+                        String base64Data = parts[1];
+                        
+                        String contentType = "image/jpeg"; // default
+                        try {
+                            String metaPart = parts[0].split(";")[0]; // "data:image/png"
+                            if (metaPart.contains(":")) {
+                                contentType = metaPart.split(":")[1];
+                            }
+                        } catch (Exception ignored) {}
+
+                        byte[] decodedBytes = java.util.Base64.getMimeDecoder().decode(base64Data);
+
+                        ProductImage pImage = new ProductImage();
+                        pImage.setProduct(saved);
+                        pImage.setImageData(decodedBytes);
+                        pImage.setContentType(contentType);
+                        pImage.setIsMain(false);
+                        pImage = productImageRepository.save(pImage);
+                        log.info("Saved variant image with ID: {}", pImage.getImageId());
+                        saved.getImages().add(pImage);
+                        variant.setImageUrl("/api/public/images/" + pImage.getImageId());
+                    } catch (Exception e) {
+                        log.error("FAILED TO SAVE VARIANT IMAGE", e);
+                        variant.setImageUrl(null);
+                    }
+                } else {
+                    variant.setImageUrl(imageUrl);
+                }
+                
+                List<VariantAttribute> vAttrs = new ArrayList<>();
+                if (vReq.getAttributes() != null) {
+                    for (Map.Entry<Integer, String> entry : vReq.getAttributes().entrySet()) {
+                        CategoryAttribute catAttr = categoryAttributeRepository.findById(entry.getKey()).orElse(null);
+                        if (catAttr != null) {
+                            VariantAttribute vAttr = new VariantAttribute();
+                            vAttr.setVariant(variant);
+                            vAttr.setCategoryAttribute(catAttr);
+                            vAttr.setValueString(entry.getValue());
+                            vAttrs.add(vAttr);
+                        }
+                    }
+                }
+                variant.setVariantAttributes(vAttrs);
+                saved.getVariants().add(variant);
+            }
+            saved = productRepository.save(saved);
         }
 
         notificationService.sendToAllAdmins("Sản phẩm mới chờ duyệt",
@@ -155,9 +229,45 @@ public class ProductServiceImpl implements ProductService {
             product.setStatus(ProductStatus.PENDING);
         }
 
+        // Extract all existing variant image IDs
+        List<Integer> variantImageIds = new ArrayList<>();
+        for (ProductVariant v : product.getVariants()) {
+            if (v.getImageUrl() != null && v.getImageUrl().startsWith("/api/public/images/")) {
+                try {
+                    String idStr = v.getImageUrl().substring("/api/public/images/".length());
+                    variantImageIds.add(Integer.parseInt(idStr));
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // Add them to existingImageIdsToKeep so they are not deleted
+        List<Integer> keepIds = request.getExistingImageIdsToKeep();
+        if (keepIds == null) {
+            keepIds = new ArrayList<>();
+        }
+        keepIds.addAll(variantImageIds);
+
+        log.debug("Protecting Variant Image IDs: {}", variantImageIds);
+        log.debug("All Image IDs to keep: {}", keepIds);
+
+        // Handle existing images
+        final List<Integer> finalKeepIds = keepIds;
+        product.getImages().removeIf(img -> !finalKeepIds.contains(img.getImageId()));
+
+        // Set main image among existing
+        if (request.getMainImageId() != null) {
+            for (ProductImage img : product.getImages()) {
+                img.setIsMain(img.getImageId().equals(request.getMainImageId()));
+            }
+        } else {
+            // Unset all existing if a new file is main
+            for (ProductImage img : product.getImages()) {
+                img.setIsMain(false);
+            }
+        }
+
         if (images != null && !images.isEmpty() && images.stream().anyMatch(f -> !f.isEmpty())) {
-            product.getImages().clear();
-            boolean isFirst = true;
+            boolean isFirst = (request.getMainImageId() == null);
             for (MultipartFile file : images) {
                 if (file.isEmpty())
                     continue;
@@ -179,6 +289,85 @@ public class ProductServiceImpl implements ProductService {
                         product.getAttributeValues().add(val);
                     }
                 });
+            }
+        }
+
+        List<ProductVariant> existingVariants = new ArrayList<>(product.getVariants());
+        product.getVariants().clear();
+
+        if (request.getVariants() != null && !request.getVariants().isEmpty()) {
+            for (ProductVariantRequest vReq : request.getVariants()) {
+                ProductVariant variant = null;
+                if (vReq.getVariantId() != null) {
+                    variant = existingVariants.stream()
+                            .filter(v -> vReq.getVariantId().equals(v.getVariantId()))
+                            .findFirst()
+                            .orElse(null);
+                }
+                if (variant == null) {
+                    variant = new ProductVariant();
+                    variant.setProduct(product);
+                    variant.setVariantAttributes(new ArrayList<>());
+                }
+
+                variant.setSku(vReq.getSku());
+                variant.setPrice(vReq.getPrice() != null ? vReq.getPrice() : request.getPrice());
+                variant.setStockQuantity(vReq.getStockQuantity() != null ? vReq.getStockQuantity() : request.getStockQuantity());
+                
+                String imageUrl = vReq.getImageUrl();
+                if (imageUrl != null && imageUrl.startsWith("data:image")) {
+                    try {
+                        String[] parts = imageUrl.split(",");
+                        String base64Data = parts[1];
+                        
+                        String contentType = "image/jpeg"; // default
+                        try {
+                            String metaPart = parts[0].split(";")[0]; // "data:image/png"
+                            if (metaPart.contains(":")) {
+                                contentType = metaPart.split(":")[1];
+                            }
+                        } catch (Exception ignored) {
+                            log.debug("Could not parse content type from {}", parts[0]);
+                        }
+
+                        byte[] decodedBytes = java.util.Base64.getMimeDecoder().decode(base64Data);
+
+                        ProductImage pImage = new ProductImage();
+                        pImage.setProduct(product);
+                        pImage.setImageData(decodedBytes);
+                        pImage.setContentType(contentType);
+                        pImage.setIsMain(false);
+                        pImage = productImageRepository.save(pImage);
+                        log.info("Saved variant image with ID: {}", pImage.getImageId());
+                        product.getImages().add(pImage);
+                        variant.setImageUrl("/api/public/images/" + pImage.getImageId());
+                    } catch (Exception e) {
+                        log.error("FAILED TO SAVE VARIANT IMAGE", e);
+                        variant.setImageUrl(null);
+                    }
+                } else {
+                    variant.setImageUrl(imageUrl);
+                }
+                
+                if (variant.getVariantAttributes() != null) {
+                    variant.getVariantAttributes().clear();
+                } else {
+                    variant.setVariantAttributes(new ArrayList<>());
+                }
+
+                if (vReq.getAttributes() != null) {
+                    for (Map.Entry<Integer, String> entry : vReq.getAttributes().entrySet()) {
+                        CategoryAttribute catAttr = categoryAttributeRepository.findById(entry.getKey()).orElse(null);
+                        if (catAttr != null) {
+                            VariantAttribute vAttr = new VariantAttribute();
+                            vAttr.setVariant(variant);
+                            vAttr.setCategoryAttribute(catAttr);
+                            vAttr.setValueString(entry.getValue());
+                            variant.getVariantAttributes().add(vAttr);
+                        }
+                    }
+                }
+                product.getVariants().add(variant);
             }
         }
 
@@ -217,7 +406,13 @@ public class ProductServiceImpl implements ProductService {
                 }
             }
         }
-        return !currentAttrs.equals(requestAttrs);
+        if (!currentAttrs.equals(requestAttrs)) return true;
+
+        if (product.getVariants().size() != (request.getVariants() == null ? 0 : request.getVariants().size())) return true;
+        // Simple heuristic: if there are variants, just require reapproval. Comparing nested attributes deeply is complex.
+        if (request.getVariants() != null && !request.getVariants().isEmpty()) return true;
+
+        return false;
     }
 
     @Override
@@ -313,5 +508,22 @@ public class ProductServiceImpl implements ProductService {
         
         notificationService.createNotification(product.getShop().getUser(), "Sản phẩm bị từ chối/khóa", notifContent);
         return productMapper.mapToResponse(saved);
+    }
+
+    @Override
+    public List<ProductResponse> getAllActiveProducts(String keyword, Short categoryId) {
+        String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
+        List<Product> products = productRepository.searchActiveProducts(kw, categoryId);
+        return products.stream().map(productMapper::mapToResponse).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public ProductResponse getProductById(Integer productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm"));
+        if (product.getStatus() != ProductStatus.ACTIVE) {
+            throw new RuntimeException("Sản phẩm không khả dụng");
+        }
+        return productMapper.mapToResponse(product);
     }
 }
