@@ -37,7 +37,11 @@ public class SecurityConfig {
                                 "/error",
                                 "/api/public/**",
                                 "/api/categories/**",
-                                "/api/categories").permitAll()
+                                "/api/categories",
+                                "/api/products/**",
+                                "/api/products",
+                                "/api/banners",
+                                "/api/banners/**").permitAll()
                 .anyRequest().authenticated()
             );
 

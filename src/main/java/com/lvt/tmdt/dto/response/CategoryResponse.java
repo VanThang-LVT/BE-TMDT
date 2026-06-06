@@ -10,4 +10,5 @@ public class CategoryResponse {
     private String categoryName;
     private String description;
     private CategoryStatus status;
+    private boolean hasImage;
 }

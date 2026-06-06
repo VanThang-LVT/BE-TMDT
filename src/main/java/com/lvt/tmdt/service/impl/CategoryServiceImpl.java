@@ -61,16 +61,24 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse createCategory(CategoryRequest request) {
-        Category category = categoryMapper.mapToEntity(request);
-        return categoryMapper.mapToResponse(categoryRepository.save(category));
+    public CategoryResponse createCategory(CategoryRequest request, org.springframework.web.multipart.MultipartFile image) {
+        try {
+            Category category = categoryMapper.mapToEntity(request, image);
+            return categoryMapper.mapToResponse(categoryRepository.save(category));
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Lỗi khi đọc file ảnh: " + e.getMessage());
+        }
     }
 
     @Override
-    public CategoryResponse updateCategory(Short id, CategoryRequest request) {
+    public CategoryResponse updateCategory(Short id, CategoryRequest request, org.springframework.web.multipart.MultipartFile image) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
-        categoryMapper.updateEntityFromRequest(category, request);
+        try {
+            categoryMapper.updateEntityFromRequest(category, request, image);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Lỗi khi đọc file ảnh mới: " + e.getMessage());
+        }
         boolean statusChanged = request.getStatus() != null && category.getStatus() != request.getStatus();
         if (statusChanged) {
             category.setStatus(request.getStatus());

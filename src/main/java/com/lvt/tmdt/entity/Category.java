@@ -32,4 +32,11 @@ public class Category {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private CategoryStatus status;
+
+    @Lob
+    @Column(name = "image_data", columnDefinition = "MEDIUMBLOB")
+    private byte[] imageData;
+
+    @Column(name = "content_type")
+    private String contentType;
 }
