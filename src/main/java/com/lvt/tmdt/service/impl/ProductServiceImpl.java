@@ -513,7 +513,34 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductResponse> getAllActiveProducts(String keyword, Short categoryId) {
         String kw = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-        List<Product> products = productRepository.searchActiveProducts(kw, categoryId);
+        List<Product> products;
+        
+        if (categoryId != null) {
+            List<Short> categoryIds = new ArrayList<>();
+            categoryIds.add(categoryId);
+            
+            // Find all child categories recursively
+            List<Category> allCategories = categoryRepository.findAll();
+            java.util.Queue<Short> queue = new java.util.LinkedList<>();
+            queue.add(categoryId);
+            
+            while (!queue.isEmpty()) {
+                Short currentId = queue.poll();
+                for (Category cat : allCategories) {
+                    if (cat.getParentId() != null && cat.getParentId().equals(currentId)) {
+                        if (!categoryIds.contains(cat.getCategoryId())) {
+                            categoryIds.add(cat.getCategoryId());
+                            queue.add(cat.getCategoryId());
+                        }
+                    }
+                }
+            }
+            
+            products = productRepository.searchActiveProductsByCategoryIds(kw, categoryIds);
+        } else {
+            products = productRepository.searchAllActiveProducts(kw);
+        }
+        
         return products.stream().map(productMapper::mapToResponse).collect(java.util.stream.Collectors.toList());
     }
 

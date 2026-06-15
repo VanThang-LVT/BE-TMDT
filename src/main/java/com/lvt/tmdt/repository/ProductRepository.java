@@ -30,8 +30,15 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     @Query("SELECT p " +
             "FROM Product p " +
             "WHERE p.status = 'ACTIVE' " +
-            "AND (:categoryId IS NULL OR p.category.categoryId = :categoryId) " +
+            "AND p.category.categoryId IN :categoryIds " +
             "AND (:keyword IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    List<Product> searchActiveProducts(@Param("keyword") String keyword, @Param("categoryId") Short categoryId);
+    List<Product> searchActiveProductsByCategoryIds(@Param("keyword") String keyword, @Param("categoryIds") List<Short> categoryIds);
+
+    @Query("SELECT p " +
+            "FROM Product p " +
+            "WHERE p.status = 'ACTIVE' " +
+            "AND (:keyword IS NULL OR LOWER(p.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    List<Product> searchAllActiveProducts(@Param("keyword") String keyword);
 }
