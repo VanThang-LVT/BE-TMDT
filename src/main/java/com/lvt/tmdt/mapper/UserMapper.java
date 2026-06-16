@@ -20,7 +20,6 @@ public class UserMapper {
     
     public AuthResponse toAuthResponse(String jwt, CustomUserDetails userDetails, List<String> roles) {
         if (userDetails == null) return null;
-        
         return AuthResponse.builder()
                 .accessToken(jwt)
                 .email(userDetails.getEmail())

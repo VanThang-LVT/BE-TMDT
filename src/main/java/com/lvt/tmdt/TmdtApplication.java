@@ -14,19 +14,15 @@ public class TmdtApplication {
 		SpringApplication.run(TmdtApplication.class, args);
 	}
 
-	@Bean
-	public boolean forceFlyway(DataSource dataSource) {
-		System.out.println("====== ĐANG ÉP FLYWAY CHẠY ======");
-		Flyway flyway = Flyway.configure()
+	@Bean(initMethod = "migrate")
+	public Flyway flyway(DataSource dataSource) {
+		System.out.println("====== ĐANG CHẠY FLYWAY ======");
+		return Flyway.configure()
 				.dataSource(dataSource)
 				.baselineOnMigrate(true)
 				.baselineVersion("1")
 				.locations("classpath:db/migration")
 				.load();
-
-		flyway.migrate();
-		System.out.println("====== FLYWAY ĐÃ CHẠY XONG ======");
-		return true;
 	}
 
 }
