@@ -110,6 +110,7 @@ public class OrderServiceImpl implements OrderService {
             shopCommissions.put(shop, currentShopCommission.add(itemCommission));
         }
 
+
         Order order = orderMapper.mapToEntity(request, user, totalAmount);
         for (Shop shop : itemsByShop.keySet()) {
             List<CartItem> shopCartItems = itemsByShop.get(shop);

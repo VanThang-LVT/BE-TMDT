@@ -1,0 +1,14 @@
+ALTER TABLE `categories` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;
+ALTER TABLE `commission_configs` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;
+ALTER TABLE `email_logs` MODIFY COLUMN `send_status` VARCHAR(50) NOT NULL;
+ALTER TABLE `orders` MODIFY COLUMN `payment_method` VARCHAR(50) NOT NULL;
+ALTER TABLE `orders` MODIFY COLUMN `order_status` VARCHAR(50) NOT NULL;
+ALTER TABLE `payments` MODIFY COLUMN `payment_method` VARCHAR(50) NOT NULL;
+ALTER TABLE `payments` MODIFY COLUMN `payment_status` VARCHAR(50) NOT NULL;
+ALTER TABLE `payment_transactions` MODIFY COLUMN `transaction_status` VARCHAR(50) NOT NULL;
+ALTER TABLE `product_approval_histories` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;
+ALTER TABLE `shops` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;
+ALTER TABLE `shop_orders` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;
+ALTER TABLE `users` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;
+ALTER TABLE `vouchers` MODIFY COLUMN `discount_type` VARCHAR(50) NOT NULL;
+ALTER TABLE `vouchers` MODIFY COLUMN `status` VARCHAR(50) NOT NULL;

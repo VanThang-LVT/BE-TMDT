@@ -7,7 +7,10 @@ import org.springframework.context.annotation.Bean;
 
 import javax.sql.DataSource;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @SpringBootApplication
+@EnableScheduling
 public class TmdtApplication {
 
 	public static void main(String[] args) {
