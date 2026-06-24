@@ -11,6 +11,9 @@ import com.lvt.tmdt.repository.UserRepository;
 import com.lvt.tmdt.sercurity.CustomUserDetails;
 import com.lvt.tmdt.sercurity.JwtTokenProvider;
 import com.lvt.tmdt.service.intf.AuthService;
+import com.lvt.tmdt.service.intf.EmailService;
+import com.lvt.tmdt.service.intf.OtpService;
+import com.lvt.tmdt.dto.request.ResetPasswordRequest;
 import com.lvt.tmdt.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.*;
@@ -41,6 +44,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private OtpService otpService;
 
     @Autowired
     private JwtTokenProvider tokenProvider;
@@ -78,8 +87,36 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void sendRegisterOtp(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email này đã được đăng ký trên hệ thống!");
+        }
+        String otp = otpService.generateOtp(email);
+        String subject = "Xác nhận đăng ký tài khoản EoViTi";
+        String content = "Chào bạn,\n\nMã OTP để xác nhận đăng ký tài khoản của bạn là: " + otp
+                + "\n\nMã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.\n\nTrân trọng,\nĐội ngũ EoViTi";
+        emailService.sendEmail(email, subject, content);
+    }
+
+    @Override
+    public void sendForgotPasswordOtp(String email) {
+        if (!userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Không tìm thấy tài khoản nào sử dụng Email này!");
+        }
+        String otp = otpService.generateOtp(email);
+        String subject = "Yêu cầu khôi phục mật khẩu EoViTi";
+        String content = "Chào bạn,\n\nMã OTP để khôi phục mật khẩu tài khoản của bạn là: " + otp
+                + "\n\nMã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.\n\nTrân trọng,\nĐội ngũ EoViTi";
+        emailService.sendEmail(email, subject, content);
+    }
+
+    @Override
     @Transactional
     public void register(RegisterRequest request) {
+        if (!otpService.validateOtp(request.getEmail(), request.getOtp())) {
+            throw new RuntimeException("Mã OTP không hợp lệ hoặc đã hết hạn!");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email này đã được đăng ký trên hệ thống!");
         }
@@ -96,5 +133,22 @@ public class AuthServiceImpl implements AuthService {
         user.setRoles(roles);
 
         userRepository.save(user);
+        otpService.clearOtp(request.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        if (!otpService.validateOtp(request.getEmail(), request.getOtp())) {
+            throw new RuntimeException("Mã OTP không hợp lệ hoặc đã hết hạn!");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        otpService.clearOtp(request.getEmail());
     }
 }

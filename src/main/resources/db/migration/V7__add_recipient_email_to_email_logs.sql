@@ -1,0 +1,1 @@
+ALTER TABLE `email_logs` ADD COLUMN `recipient_email` VARCHAR(150) NULL AFTER `order_id`;
