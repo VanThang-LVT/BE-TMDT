@@ -2,6 +2,7 @@ package com.lvt.tmdt.mapper;
 
 import com.lvt.tmdt.dto.response.EmailLogResponse;
 import com.lvt.tmdt.entity.EmailLog;
+import com.lvt.tmdt.entity.Order;
 import com.lvt.tmdt.entity.User;
 import org.springframework.stereotype.Component;
 
@@ -26,6 +27,16 @@ public class EmailLogMapper {
     public EmailLog toEntity(User user, String recipientEmail, String subject, String content) {
         return EmailLog.builder()
                 .user(user)
+                .recipientEmail(recipientEmail)
+                .subject(subject)
+                .content(content)
+                .build();
+    }
+
+    public EmailLog toEntity(User user, Order order, String recipientEmail, String subject, String content) {
+        return EmailLog.builder()
+                .user(user)
+                .order(order)
                 .recipientEmail(recipientEmail)
                 .subject(subject)
                 .content(content)

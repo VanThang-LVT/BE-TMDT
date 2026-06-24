@@ -47,6 +47,9 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired
+    private com.lvt.tmdt.service.intf.EmailService emailService;
+
     @Override
     @Transactional
     public OrderResponse placeOrder(Integer userId, OrderRequest request) {
@@ -163,16 +166,46 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepository.save(order);
 
         for (ShopOrder shopOrder : savedOrder.getShopOrders()) {
+            StringBuilder contentBuilder = new StringBuilder();
+            contentBuilder.append("Khách hàng ").append(user.getFullName()).append(" vừa đặt mua:\n");
+            
+            for (OrderItem item : shopOrder.getOrderItems()) {
+                contentBuilder.append("- ").append(item.getProduct().getProductName());
+                
+                if (item.getVariant() != null) {
+                    List<String> attributes = new ArrayList<>();
+                    for (VariantAttribute attr : item.getVariant().getVariantAttributes()) {
+                        attributes.add(attr.getCategoryAttribute().getAttrName() + ": " + attr.getValueString());
+                    }
+                    contentBuilder.append(" (").append(String.join(", ", attributes)).append(")");
+                }
+                
+                contentBuilder.append(" x").append(item.getQuantity()).append("\n");
+            }
+
             Notification notification = Notification.builder()
                     .user(shopOrder.getShop().getUser())
                     .title("Đơn hàng mới")
-                    .content("Bạn vừa nhận được một đơn hàng mới từ khách hàng " + user.getFullName() + ".")
+                    .content(contentBuilder.toString().trim())
                     .isRead(false)
                     .build();
             notificationRepository.save(notification);
         }
 
         cartItemRepository.deleteAll(cartItems);
+
+        // Chỉ gửi email ngay lập tức nếu là thanh toán Tiền mặt (COD).
+        // Nếu là VNPay, email sẽ được gửi sau khi VNPay trả về kết quả thanh toán thành công (ở PaymentController).
+        if (savedOrder.getPaymentMethod() == com.lvt.tmdt.enums.PaymentMethod.COD) {
+            new Thread(() -> {
+                try {
+                    emailService.sendOrderConfirmationEmail(savedOrder.getOrderId());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }).start();
+        }
+
         return orderMapper.mapToResponse(savedOrder);
     }
 

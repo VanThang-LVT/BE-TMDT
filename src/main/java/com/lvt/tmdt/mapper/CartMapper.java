@@ -22,7 +22,7 @@ public class CartMapper {
         if (variant != null && variant.getImageUrl() != null && !variant.getImageUrl().isEmpty()) {
             imageUrl = variant.getImageUrl();
         } else if (product.getImages() != null && !product.getImages().isEmpty()) {
-            imageUrl = "/api/products/images/" + product.getImages().get(0).getImageId();
+            imageUrl = "/api/public/images/" + product.getImages().get(0).getImageId();
         }
         
         int stockQuantity = variant != null ? variant.getStockQuantity() : product.getStockQuantity();

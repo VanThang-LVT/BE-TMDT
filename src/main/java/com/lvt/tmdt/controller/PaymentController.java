@@ -18,6 +18,8 @@ import java.util.*;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
+import com.lvt.tmdt.service.intf.EmailService;
+
 @RestController
 @RequestMapping("/api/payment/vnpay")
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class PaymentController {
 
     private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
+    private final EmailService emailService;
 
     @GetMapping("/create_payment")
     public ResponseEntity<?> createPayment(HttpServletRequest request,
@@ -140,6 +143,16 @@ public class PaymentController {
                             if ("00".equals(request.getParameter("vnp_ResponseCode"))) {
                                 order.setOrderStatus(OrderStatus.PAID);
                                 orderRepository.save(order);
+
+                                // Gửi email xác nhận sau khi VNPay thanh toán thành công
+                                new Thread(() -> {
+                                    try {
+                                        emailService.sendOrderConfirmationEmail(order.getOrderId());
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
+                                    }
+                                }).start();
+
                                 response.put("code", "00");
                                 response.put("message", "Giao dịch thành công");
                             } else {

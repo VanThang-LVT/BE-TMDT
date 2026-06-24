@@ -118,7 +118,7 @@ public class OrderMapper {
         if (item.getVariant() != null && item.getVariant().getImageUrl() != null && !item.getVariant().getImageUrl().isEmpty()) {
             imageUrl = item.getVariant().getImageUrl();
         } else if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
-            imageUrl = "/api/images/products/" + item.getProduct().getImages().get(0).getImageId();
+            imageUrl = "/api/public/images/" + item.getProduct().getImages().get(0).getImageId();
         }
 
         String variantAttributes = null;
