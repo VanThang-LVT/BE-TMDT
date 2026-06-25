@@ -35,7 +35,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public void addToCart(Integer userId, AddToCartRequest request) {
+    public Long addToCart(Integer userId, AddToCartRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
@@ -84,7 +84,8 @@ public class CartServiceImpl implements CartService {
             }
             
             existingItem.setQuantity(newQuantity);
-            cartItemRepository.save(existingItem);
+            CartItem savedItem = cartItemRepository.save(existingItem);
+            return savedItem.getCartItemId();
         } else {
             CartItem newItem = CartItem.builder()
                     .cart(cart)
@@ -92,7 +93,8 @@ public class CartServiceImpl implements CartService {
                     .productVariant(variant)
                     .quantity(request.getQuantity())
                     .build();
-            cartItemRepository.save(newItem);
+            CartItem savedItem = cartItemRepository.save(newItem);
+            return savedItem.getCartItemId();
         }
     }
 
