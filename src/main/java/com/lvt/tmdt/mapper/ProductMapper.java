@@ -21,8 +21,15 @@ import com.lvt.tmdt.entity.ProductVariant;
 import com.lvt.tmdt.entity.VariantAttribute;
 import com.lvt.tmdt.dto.response.ProductVariantResponse;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import com.lvt.tmdt.repository.OrderRepository;
+
 @Component
 public class ProductMapper {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
     public ProductResponse mapToResponse(Product product) {
         if (product == null)
             return null;
@@ -44,6 +51,10 @@ public class ProductMapper {
         res.setDescription(product.getDescription());
         res.setPrice(product.getPrice());
         res.setStockQuantity(product.getStockQuantity());
+        
+        Integer sales = orderRepository.getTotalSalesByProductId(product.getProductId());
+        res.setSalesCount(sales != null ? sales : 0);
+        
         res.setBrand(product.getBrand());
         res.setKeywords(product.getKeywords());
         res.setSpecifications(product.getSpecifications());

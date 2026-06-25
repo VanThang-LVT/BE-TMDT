@@ -22,8 +22,11 @@ public class CartController {
     public ResponseEntity<?> addToCart(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody AddToCartRequest request) {
-        cartService.addToCart(userDetails.getUserId(), request);
-        return ResponseEntity.ok().body(singletonMap("message", "Thêm vào giỏ hàng thành công"));
+        Long cartItemId = cartService.addToCart(userDetails.getUserId(), request);
+        return ResponseEntity.ok().body(java.util.Map.of(
+                "message", "Thêm vào giỏ hàng thành công",
+                "cartItemId", cartItemId
+        ));
     }
 
     @GetMapping
