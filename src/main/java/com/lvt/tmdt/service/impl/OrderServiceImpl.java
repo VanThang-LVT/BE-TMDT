@@ -4,6 +4,7 @@ import com.lvt.tmdt.dto.request.OrderRequest;
 import com.lvt.tmdt.dto.response.OrderResponse;
 import com.lvt.tmdt.entity.*;
 import com.lvt.tmdt.enums.CommissionStatus;
+import com.lvt.tmdt.enums.PaymentMethod;
 import com.lvt.tmdt.mapper.OrderMapper;
 import com.lvt.tmdt.repository.*;
 import com.lvt.tmdt.service.intf.OrderService;
@@ -194,11 +195,11 @@ public class OrderServiceImpl implements OrderService {
 
         cartItemRepository.deleteAll(cartItems);
 
-        // Chỉ gửi email ngay lập tức nếu là thanh toán Tiền mặt (COD).
-        // Nếu là VNPay, email sẽ được gửi sau khi VNPay trả về kết quả thanh toán thành công (ở PaymentController).
-        if (savedOrder.getPaymentMethod() == com.lvt.tmdt.enums.PaymentMethod.COD) {
+
+        if (savedOrder.getPaymentMethod() == PaymentMethod.COD) {
             new Thread(() -> {
                 try {
+                    Thread.sleep(1000);
                     emailService.sendOrderConfirmationEmail(savedOrder.getOrderId());
                 } catch (Exception ex) {
                     ex.printStackTrace();
