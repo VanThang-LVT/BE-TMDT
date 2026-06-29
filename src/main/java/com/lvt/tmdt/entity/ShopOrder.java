@@ -50,6 +50,12 @@ public class ShopOrder {
     @OneToMany(mappedBy = "shopOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @OneToMany(mappedBy = "shopOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderStatusHistory> statusHistories = new ArrayList<>();
+
+    @Column(name = "cancel_reason", columnDefinition = "NVARCHAR(255)")
+    private String cancelReason;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -3,6 +3,7 @@ package com.lvt.tmdt.mapper;
 import com.lvt.tmdt.dto.response.OrderItemResponse;
 import com.lvt.tmdt.dto.response.OrderResponse;
 import com.lvt.tmdt.dto.response.ShopOrderResponse;
+import com.lvt.tmdt.dto.response.OrderStatusHistoryResponse;
 import com.lvt.tmdt.entity.Order;
 import com.lvt.tmdt.entity.OrderItem;
 import com.lvt.tmdt.entity.ShopOrder;
@@ -10,6 +11,11 @@ import com.lvt.tmdt.entity.VariantAttribute;
 import com.lvt.tmdt.dto.request.OrderRequest;
 import com.lvt.tmdt.entity.User;
 import com.lvt.tmdt.enums.OrderStatus;
+import com.lvt.tmdt.entity.Shop;
+import com.lvt.tmdt.entity.Product;
+import com.lvt.tmdt.entity.ProductVariant;
+import com.lvt.tmdt.enums.PaymentMethod;
+import com.lvt.tmdt.enums.ShopOrderStatus;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -36,11 +42,11 @@ public class OrderMapper {
                 .build();
     }
 
-    public ShopOrder mapToShopOrderEntity(Order order, com.lvt.tmdt.entity.Shop shop, BigDecimal subtotalAmount, BigDecimal commissionAmount, BigDecimal sellerAmount) {
+    public ShopOrder mapToShopOrderEntity(Order order, Shop shop, BigDecimal subtotalAmount, BigDecimal commissionAmount, BigDecimal sellerAmount) {
         return ShopOrder.builder()
                 .order(order)
                 .shop(shop)
-                .status(com.lvt.tmdt.enums.ShopOrderStatus.PENDING)
+                .status(order.getPaymentMethod() == PaymentMethod.VNPAY ? ShopOrderStatus.UNPAID : ShopOrderStatus.PENDING)
                 .subtotalAmount(subtotalAmount)
                 .commissionAmount(commissionAmount)
                 .sellerAmount(sellerAmount)
@@ -48,7 +54,7 @@ public class OrderMapper {
                 .build();
     }
 
-    public OrderItem mapToOrderItemEntity(ShopOrder shopOrder, com.lvt.tmdt.entity.Product product, com.lvt.tmdt.entity.ProductVariant variant, int quantity, BigDecimal price, BigDecimal subtotal) {
+    public OrderItem mapToOrderItemEntity(ShopOrder shopOrder, Product product, ProductVariant variant, int quantity, BigDecimal price, BigDecimal subtotal) {
         return OrderItem.builder()
                 .shopOrder(shopOrder)
                 .product(product)
@@ -97,6 +103,17 @@ public class OrderMapper {
             }
         }
 
+        List<OrderStatusHistoryResponse> historyResponses = shopOrder.getStatusHistories() != null ? 
+                shopOrder.getStatusHistories().stream()
+                .map(history -> OrderStatusHistoryResponse.builder()
+                        .oldStatus(history.getOldStatus())
+                        .newStatus(history.getNewStatus())
+                        .updatedByFullName(history.getUpdatedBy() != null ? history.getUpdatedBy().getFullName() : "Hệ thống")
+                        .createdAt(history.getCreatedAt())
+                        .build())
+                .sorted((h1, h2) -> h2.getCreatedAt().compareTo(h1.getCreatedAt()))
+                .collect(Collectors.toList()) : new ArrayList<>();
+
         return ShopOrderResponse.builder()
                 .shopOrderId(shopOrder.getShopOrderId())
                 .shopId(shopOrder.getShop().getShopId())
@@ -107,6 +124,11 @@ public class OrderMapper {
                 .status(shopOrder.getStatus())
                 .createdAt(shopOrder.getCreatedAt())
                 .orderItems(itemResponses)
+                .statusHistories(historyResponses)
+                .receiverName(shopOrder.getOrder() != null ? shopOrder.getOrder().getReceiverName() : null)
+                .receiverPhone(shopOrder.getOrder() != null ? shopOrder.getOrder().getReceiverPhone() : null)
+                .shippingAddress(shopOrder.getOrder() != null ? shopOrder.getOrder().getShippingAddress() : null)
+                .cancelReason(shopOrder.getCancelReason())
                 .build();
     }
 

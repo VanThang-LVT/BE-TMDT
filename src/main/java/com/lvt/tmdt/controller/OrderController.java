@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -31,9 +32,10 @@ public class OrderController {
     }
 
     @GetMapping("/my-orders")
-    public ResponseEntity<ApiResponse<java.util.List<OrderResponse>>> getMyOrders(
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        java.util.List<OrderResponse> response = orderService.getMyOrders(userDetails.getUserId());
+        List<OrderResponse> response = orderService.getMyOrders(userDetails.getUserId());
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách đơn hàng thành công", response));
     }
+
 }

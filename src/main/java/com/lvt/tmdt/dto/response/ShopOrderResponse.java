@@ -24,4 +24,9 @@ public class ShopOrderResponse {
     private ShopOrderStatus status;
     private LocalDateTime createdAt;
     private List<OrderItemResponse> orderItems;
+    private List<OrderStatusHistoryResponse> statusHistories;
+    private String receiverName;
+    private String receiverPhone;
+    private String shippingAddress;
+    private String cancelReason;
 }

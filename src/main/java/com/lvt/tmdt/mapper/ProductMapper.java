@@ -19,7 +19,9 @@ import com.lvt.tmdt.entity.CategoryAttribute;
 import com.lvt.tmdt.entity.ProductImage;
 import com.lvt.tmdt.entity.ProductVariant;
 import com.lvt.tmdt.entity.VariantAttribute;
+import com.lvt.tmdt.entity.ProductApprovalHistory;
 import com.lvt.tmdt.dto.response.ProductVariantResponse;
+import com.lvt.tmdt.dto.response.ApprovalHistoryResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import com.lvt.tmdt.repository.OrderRepository;
@@ -94,9 +96,9 @@ public class ProductMapper {
         }
         
         if (product.getApprovalHistories() != null && !product.getApprovalHistories().isEmpty()) {
-            java.util.List<com.lvt.tmdt.dto.response.ApprovalHistoryResponse> historyResponses = new ArrayList<>();
-            for (com.lvt.tmdt.entity.ProductApprovalHistory history : product.getApprovalHistories()) {
-                com.lvt.tmdt.dto.response.ApprovalHistoryResponse histRes = new com.lvt.tmdt.dto.response.ApprovalHistoryResponse();
+            java.util.List<ApprovalHistoryResponse> historyResponses = new ArrayList<>();
+            for (ProductApprovalHistory history : product.getApprovalHistories()) {
+                ApprovalHistoryResponse histRes = new ApprovalHistoryResponse();
                 histRes.setApprovalId(history.getApprovalId());
                 if (history.getAdmin() != null) {
                     histRes.setAdminName(history.getAdmin().getFullName());

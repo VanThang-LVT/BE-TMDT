@@ -13,5 +13,6 @@ import java.util.Optional;
 public interface ShopRepository extends JpaRepository<Shop, Integer> {
     List<Shop> findByStatus(ShopStatus status);
     Optional<Shop> findByUser(User user);
+    Optional<Shop> findByUser_UserId(Integer userId);
     boolean existsByUser(User user);
 }

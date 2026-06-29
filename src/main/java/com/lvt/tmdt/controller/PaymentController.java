@@ -19,7 +19,12 @@ import java.util.*;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import com.lvt.tmdt.service.intf.EmailService;
-
+import com.lvt.tmdt.entity.ShopOrder;
+import com.lvt.tmdt.entity.OrderItem;
+import com.lvt.tmdt.entity.VariantAttribute;
+import com.lvt.tmdt.entity.Notification;
+import com.lvt.tmdt.enums.ShopOrderStatus;
+import com.lvt.tmdt.repository.NotificationRepository;
 @RestController
 @RequestMapping("/api/payment/vnpay")
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ public class PaymentController {
     private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
     private final EmailService emailService;
+    private final NotificationRepository notificationRepository;
 
     @GetMapping("/create_payment")
     public ResponseEntity<?> createPayment(HttpServletRequest request,
@@ -142,7 +148,36 @@ public class PaymentController {
                         if (checkOrderStatus) {
                             if ("00".equals(request.getParameter("vnp_ResponseCode"))) {
                                 order.setOrderStatus(OrderStatus.PAID);
+                                for (ShopOrder so : order.getShopOrders()) {
+                                    if (so.getStatus() == ShopOrderStatus.UNPAID) {
+                                        so.setStatus(ShopOrderStatus.PENDING);
+                                    }
+                                }
                                 orderRepository.save(order);
+
+                                // Tạo thông báo cho Seller
+                                for (ShopOrder shopOrder : order.getShopOrders()) {
+                                    StringBuilder contentBuilder = new StringBuilder();
+                                    contentBuilder.append("Khách hàng ").append(order.getUser().getFullName()).append(" vừa thanh toán thành công và đặt mua:\n");
+                                    for (OrderItem item : shopOrder.getOrderItems()) {
+                                        contentBuilder.append("- ").append(item.getProduct().getProductName());
+                                        if (item.getVariant() != null) {
+                                            List<String> attributes = new ArrayList<>();
+                                            for (VariantAttribute attr : item.getVariant().getVariantAttributes()) {
+                                                attributes.add(attr.getCategoryAttribute().getAttrName() + ": " + attr.getValueString());
+                                            }
+                                            contentBuilder.append(" (").append(String.join(", ", attributes)).append(")");
+                                        }
+                                        contentBuilder.append(" x").append(item.getQuantity()).append("\n");
+                                    }
+                                    Notification notification = Notification.builder()
+                                            .user(shopOrder.getShop().getUser())
+                                            .title("Đơn hàng mới đã thanh toán")
+                                            .content(contentBuilder.toString().trim())
+                                            .isRead(false)
+                                            .build();
+                                    notificationRepository.save(notification);
+                                }
 
                                 // Gửi email xác nhận sau khi VNPay thanh toán thành công
                                 new Thread(() -> {
